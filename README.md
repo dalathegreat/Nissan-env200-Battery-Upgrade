@@ -4,7 +4,7 @@ Software for upgrading a 24kWh env200 to 40kWh using a Muxsan 3-port CAN-bridge.
 # Why is this needed when upgrading?
 It is kind of not, but highly recommended. Technically you can install a 40kWh pack and just pair it with Leafspy, but then you will run into instrumentation issues and also isses with some fastchargers not charging the battery fully. The code here fixes that when installed on a CAN-bridge, which gets mounted between the battery and vehicle EV-CAN system.
 
-## Installation videos
+## CAN-bridge installation videos
 Below are some example installation videos:
 https://www.youtube.com/watch?v=W-W7FwTNOnU
 
@@ -23,6 +23,7 @@ All changes are made in the "can-bridge-env200.c" file. Manipulations to message
 
 ## Flashing the 3-port CAN-bridge
 If you want to simply flash a pre-made .hex file, follow this video: https://youtu.be/eLcNSo2Vn6U?t=170
+A pre-made .hex file is found in the debug folder of this repository.
 Please note that you don't need +12V to power the CAN-bridge, a standard 5V USB cable can also be used when flashing.
 
 If you want to flash directly from Atmel Studio while making code changes, press CTRL+ALT+F5 to start a debugging session, that defaults to flashing the CAN-bridge
