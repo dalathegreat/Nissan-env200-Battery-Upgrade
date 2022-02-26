@@ -23,7 +23,7 @@ build
 
 ### Burn
 
-    #> avrdude -c avrispmkII -p ATMega32c4 -P usb -e -U flash:w:<your hex file>
+    #> avrdude -c avrispmkII -p x32c4 -P usb -e -U flash:w:<your hex file>
 
 NOTE: You should use the correct **-c** option depending on avr flasher
 
