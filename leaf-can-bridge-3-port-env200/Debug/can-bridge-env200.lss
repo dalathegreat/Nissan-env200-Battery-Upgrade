@@ -19,15 +19,15 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY, DEBUGGING
   7 .debug_abbrev 0000355b  00000000  00000000  0000b205  2**0
                   CONTENTS, READONLY, DEBUGGING
-  8 .debug_line   00002c87  00000000  00000000  0000e760  2**0
+  8 .debug_line   00002c81  00000000  00000000  0000e760  2**0
                   CONTENTS, READONLY, DEBUGGING
-  9 .debug_frame  00000b88  00000000  00000000  000113e8  2**2
+  9 .debug_frame  00000b88  00000000  00000000  000113e4  2**2
                   CONTENTS, READONLY, DEBUGGING
- 10 .debug_str    00003de0  00000000  00000000  00011f70  2**0
+ 10 .debug_str    00003de0  00000000  00000000  00011f6c  2**0
                   CONTENTS, READONLY, DEBUGGING
- 11 .debug_loc    00003632  00000000  00000000  00015d50  2**0
+ 11 .debug_loc    00003632  00000000  00000000  00015d4c  2**0
                   CONTENTS, READONLY, DEBUGGING
- 12 .debug_ranges 000003a0  00000000  00000000  00019382  2**0
+ 12 .debug_ranges 000003a0  00000000  00000000  0001937e  2**0
                   CONTENTS, READONLY, DEBUGGING
 
 Disassembly of section .text:
@@ -3019,32 +3019,29 @@ void can_handler(uint8_t can_bus){
 			break;
     10ca:	84 c0       	rjmp	.+264    	; 0x11d4 <can_handler+0x258>
 			case 0x59E:   // QC capacity message
-				frame.data[2] = 0x0E; //Set LB_Full_Capacity_for_QC to 23000Wh (default value for 24kWh env200)
-    10cc:	8e e0       	ldi	r24, 0x0E	; 14
-    10ce:	8e 83       	std	Y+6, r24	; 0x06
-				frame.data[3] = 0x60;
-				
 				//Calculate new LBC_QC_CapRemaining value
 				temp = ((230 * main_battery_soc)/100); // Crazy advanced math
-    10d0:	80 91 24 21 	lds	r24, 0x2124	; 0x802124 <main_battery_soc>
-    10d4:	90 91 25 21 	lds	r25, 0x2125	; 0x802125 <main_battery_soc+0x1>
-    10d8:	46 ee       	ldi	r20, 0xE6	; 230
-    10da:	48 9f       	mul	r20, r24
-    10dc:	90 01       	movw	r18, r0
-    10de:	49 9f       	mul	r20, r25
-    10e0:	30 0d       	add	r19, r0
-    10e2:	11 24       	eor	r1, r1
+    10cc:	80 91 24 21 	lds	r24, 0x2124	; 0x802124 <main_battery_soc>
+    10d0:	90 91 25 21 	lds	r25, 0x2125	; 0x802125 <main_battery_soc+0x1>
+    10d4:	46 ee       	ldi	r20, 0xE6	; 230
+    10d6:	48 9f       	mul	r20, r24
+    10d8:	90 01       	movw	r18, r0
+    10da:	49 9f       	mul	r20, r25
+    10dc:	30 0d       	add	r19, r0
+    10de:	11 24       	eor	r1, r1
+    10e0:	36 95       	lsr	r19
+    10e2:	27 95       	ror	r18
     10e4:	36 95       	lsr	r19
     10e6:	27 95       	ror	r18
-    10e8:	36 95       	lsr	r19
-    10ea:	27 95       	ror	r18
-    10ec:	ab e7       	ldi	r26, 0x7B	; 123
-    10ee:	b4 e1       	ldi	r27, 0x14	; 20
-    10f0:	41 d1       	rcall	.+642    	; 0x1374 <__umulhisi3>
-    10f2:	9c 01       	movw	r18, r24
-    10f4:	36 95       	lsr	r19
-    10f6:	27 95       	ror	r18
+    10e8:	ab e7       	ldi	r26, 0x7B	; 123
+    10ea:	b4 e1       	ldi	r27, 0x14	; 20
+    10ec:	43 d1       	rcall	.+646    	; 0x1374 <__umulhisi3>
+    10ee:	9c 01       	movw	r18, r24
+    10f0:	36 95       	lsr	r19
+    10f2:	27 95       	ror	r18
 				frame.data[3] = (frame.data[3] & 0xF0) | ((temp >> 5) & 0xF); // store the new LBC_QC_CapRemaining
+    10f4:	3f 81       	ldd	r19, Y+7	; 0x07
+    10f6:	30 7f       	andi	r19, 0xF0	; 240
     10f8:	00 24       	eor	r0, r0
     10fa:	88 0f       	add	r24, r24
     10fc:	99 1f       	adc	r25, r25
@@ -3055,7 +3052,7 @@ void can_handler(uint8_t can_bus){
     1106:	89 2f       	mov	r24, r25
     1108:	90 2d       	mov	r25, r0
     110a:	8f 70       	andi	r24, 0x0F	; 15
-    110c:	80 66       	ori	r24, 0x60	; 96
+    110c:	83 2b       	or	r24, r19
     110e:	8f 83       	std	Y+7, r24	; 0x07
 				frame.data[4] = ((temp & 0x1F) <<3) | (frame.data[4] & 0x07); // to the 59E message out to vehicle
     1110:	88 85       	ldd	r24, Y+8	; 0x08

@@ -1217,7 +1217,7 @@ END GROUP
  .debug_abbrev  0x00002f2b      0x2ae mcp25xx.o
  .debug_abbrev  0x000031d9      0x382 can-bridge-env200.o
 
-.debug_line     0x00000000     0x2c87
+.debug_line     0x00000000     0x2c81
  *(.debug_line .debug_line.* .debug_line_end)
  .debug_line    0x00000000      0x391 C:/Program Files (x86)/Atmel/Studio/7.0/Packs/atmel/XMEGAC_DFP/1.1.50/gcc/dev/atxmega32c4/avrxmega2/crtatxmega32c4.o
  .debug_line    0x00000391      0x4d8 helper_functions.o
@@ -1228,7 +1228,7 @@ END GROUP
  .debug_line    0x000015ca      0x3d6 LUFA/Drivers/USB/Core/XMEGA/USBController_XMEGA.o
  .debug_line    0x000019a0      0x395 LUFA/Drivers/USB/Core/XMEGA/USBInterrupt_XMEGA.o
  .debug_line    0x00001d35      0x6f4 mcp25xx.o
- .debug_line    0x00002429      0x85e can-bridge-env200.o
+ .debug_line    0x00002429      0x858 can-bridge-env200.o
 
 .debug_frame    0x00000000      0xb88
  *(.debug_frame)

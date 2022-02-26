@@ -312,9 +312,6 @@ void can_handler(uint8_t can_bus){
 				frame.data[5] = frame.data[5] & 0x03; //Clear LB_Output_Power_Limit_Reason and LB_MaxGIDS
 			break;
 			case 0x59E:   // QC capacity message
-				frame.data[2] = 0x0E; //Set LB_Full_Capacity_for_QC to 23000Wh (default value for 24kWh env200)
-				frame.data[3] = 0x60;
-				
 				//Calculate new LBC_QC_CapRemaining value
 				temp = ((230 * main_battery_soc)/100); // Crazy advanced math
 				frame.data[3] = (frame.data[3] & 0xF0) | ((temp >> 5) & 0xF); // store the new LBC_QC_CapRemaining
