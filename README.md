@@ -1,5 +1,6 @@
 # Nissan-env200-Battery-Upgrade
-Software for upgrading a 24kWh env200 to 40kWh using a Muxsan 3-port CAN-bridge. 
+Software for upgrading a 24kWh env200 to 40kWh using a Muxsan 3-port CAN-bridge.
+![alt text](https://github.com/dalathegreat/Nissan-env200-Battery-Upgrade/blob/main/leaf-can-bridge-3-port-env200/BatteryUpgrade.png)
 
 # Why is this needed when upgrading?
 It is kind of not, but highly recommended. Technically you can install a 40kWh pack and just pair it with Leafspy, but then you will run into instrumentation issues and also isses with some fastchargers not charging the battery fully. The code here fixes that when installed on a CAN-bridge, which gets mounted between the battery and vehicle EV-CAN system.
