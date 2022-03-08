@@ -18,6 +18,8 @@ volatile	uint8_t		charging_state		= 0;
 volatile	uint8_t		can_busy			= 0;	//Tracks whether the can_handler() subroutine is running
 volatile	uint16_t	sec_timer			= 1;	//Counts down from 1000
 
+//CAN message templates
+static	can_frame_t		instrumentCluster5E3	= {.can_id = 0x5E3, .can_dlc = 5, .data = {0x8E,0x00,0x00,0x00,0x80}};
 
 //Because the MCP25625 transmit buffers seem to be able to corrupt messages (see errata), we're implementing
 //our own buffering. This is an array of frames-to-be-sent, FIFO. Messages are appended to buffer_end++ as they
@@ -151,7 +153,7 @@ int main(void){
 	hw_init();
 
 	while(1){
-		//Setup complete, wait for CAN messages to trigger interrupts OR check if it is time to send CAN-messages
+		//Setup complete, wait for CAN messages to trigger interrupts
 		#ifdef USB_SERIAL
 		//when USB is essentially unused, we output general status info
 		if(!output_can_to_serial){
@@ -299,6 +301,16 @@ void can_handler(uint8_t can_bus){
 			case 0x55B:
 				main_battery_soc = (frame.data[0] << 2) | ((frame.data[1] & 0xC0) >> 6); //Capture SOC% needed for QC_rescaling
 				main_battery_soc /= 10; //Remove decimals, 0-100 instead of 0-100.0
+				
+				//Upon reading 0x55B coming from battery every 100ms, send missing message towards battery
+				if(can_bus == 1)
+				{
+					send_can1(instrumentCluster5E3);
+				}
+				else
+				{
+					send_can2(instrumentCluster5E3);
+				}
 			break;
 			case 0x5BC:
 				if((frame.data[5] & 0x10) == 0x00)
@@ -458,5 +470,3 @@ void check_can3(void){
 		}
 	}
 }
-
-
