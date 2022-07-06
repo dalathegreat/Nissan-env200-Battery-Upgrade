@@ -14,12 +14,17 @@ uint8_t	output_can_to_serial = 0;	//specifies if the received CAN messages shoul
 //General variables
 volatile	uint16_t	main_battery_soc	= 0; 
 volatile 	uint16_t	GIDS 				= 0; 
-volatile	uint8_t		charging_state		= 0;
 volatile	uint8_t		can_busy			= 0;	//Tracks whether the can_handler() subroutine is running
 volatile	uint16_t	sec_timer			= 1;	//Counts down from 1000
 
 //CAN message templates
+volatile	uint8_t		battery_can_bus			= 2; //keeps track on which CAN bus the battery talks
 static	can_frame_t		instrumentCluster5E3	= {.can_id = 0x5E3, .can_dlc = 5, .data = {0x8E,0x00,0x00,0x00,0x80}};
+static	can_frame_t		ZE1startupMessage603	= {.can_id = 0x603, .can_dlc = 1, .data = {0x00}};
+static	can_frame_t		ZE1startupMessage605	= {.can_id = 0x605, .can_dlc = 1, .data = {0x00}};
+static	can_frame_t		ZE1message355			= {.can_id = 0x355, .can_dlc = 8, .data = {0x14,0x0a,0x13,0x97,0x10,0x00,0x40,0x00}}; 
+volatile	uint8_t		ticks10ms				= 0;
+static		can_frame_t	ZE1message5C5			= {.can_id = 0x5C5, .can_dlc = 8, .data = {0x84,0x01,0x06,0x79,0x00,0x0C,0x00,0x00}}; 
 
 //Because the MCP25625 transmit buffers seem to be able to corrupt messages (see errata), we're implementing
 //our own buffering. This is an array of frames-to-be-sent, FIFO. Messages are appended to buffer_end++ as they
@@ -296,21 +301,25 @@ void can_handler(uint8_t can_bus){
 		
 		switch(frame.can_id){
 			case 0x1F2:
-				charging_state = frame.data[2];
+				//Upon reading VCM originating 0x1F2 every 10ms, send the missing message to battery every 40ms
+				ticks10ms++;
+				if(ticks10ms > 3)
+				{
+					ticks10ms = 0;
+					send_can(battery_can_bus, ZE1message355);
+				}
+
 			break;
 			case 0x55B:
 				main_battery_soc = (frame.data[0] << 2) | ((frame.data[1] & 0xC0) >> 6); //Capture SOC% needed for QC_rescaling
 				main_battery_soc /= 10; //Remove decimals, 0-100 instead of 0-100.0
 				
-				//Upon reading 0x55B coming from battery every 100ms, send missing message towards battery
-				if(can_bus == 1)
-				{
-					send_can1(instrumentCluster5E3);
-				}
-				else
-				{
-					send_can2(instrumentCluster5E3);
-				}
+				battery_can_bus = can_bus; //Check on what side of the CAN-bridge the battery is connected to
+				
+				//Upon reading 0x55B coming from battery every 100ms, send missing messages towards battery
+				send_can(battery_can_bus, instrumentCluster5E3);
+				send_can(battery_can_bus, ZE1message5C5);
+
 			break;
 			case 0x5BC:
 				if((frame.data[5] & 0x10) == 0x00)
@@ -329,6 +338,10 @@ void can_handler(uint8_t can_bus){
 				frame.data[3] = (frame.data[3] & 0xF0) | ((temp >> 5) & 0xF); // store the new LBC_QC_CapRemaining
 				frame.data[4] = ((temp & 0x1F) <<3) | (frame.data[4] & 0x07); // to the 59E message out to vehicle
 				calc_crc8(&frame);
+			break;
+			case 0x679: //Send missing 2018+ startup messages towards battery
+				send_can(battery_can_bus, ZE1startupMessage603);
+				send_can(battery_can_bus, ZE1startupMessage605);
 			break;
 		default:
 			break;
@@ -470,3 +483,5 @@ void check_can3(void){
 		}
 	}
 }
+
+
