@@ -8,7 +8,9 @@
 
 //General variables
 static volatile	uint8_t		battery_soc	= 0; 
-static volatile uint16_t	GIDS 				= 0; 
+static volatile uint16_t	GIDS 				= 0;
+static volatile uint8_t	max_charge_80_requested	= 0;
+static volatile uint8_t charging_state = 0;
 
 //CAN message templates
 static volatile	uint8_t		battery_can_bus			= 2; //keeps track on which CAN bus the battery talks
@@ -49,6 +51,11 @@ void can_handler(uint8_t can_bus, CAN_FRAME *frame)
         switch (frame->ID)
         {
 				case 0x1F2:
+					//Collect charging state
+					charging_state = frame->data[2];
+					//Check if VCM wants to only charge to 80%
+					max_charge_80_requested = ((frame->data[0] & 0x80) >> 7);
+				
 					//Upon reading VCM originating 0x1F2 every 10ms, send the missing message to battery every 40ms
 					ticks10ms++;
 					if(ticks10ms > 3)
@@ -57,6 +64,17 @@ void can_handler(uint8_t can_bus, CAN_FRAME *frame)
 						PushCan(battery_can_bus, CAN_TX, &ZE1message355);
 					}
 
+				break;
+				case 0x1DB:
+					if(max_charge_80_requested)
+						{
+							if((charging_state == CHARGING_SLOW) && (battery_soc > 80))
+							{
+								frame->data[1] = (frame->data[1] & 0xE0) | 2; //request charging stop
+								frame->data[3] = (frame->data[3] & 0xEF) | 0x10; //full charge completed
+							}
+						}
+					calc_crc8(frame);
 				break;
 				case 0x55B:
 					//Capture SOC% needed for QC_rescaling
@@ -89,6 +107,7 @@ void can_handler(uint8_t can_bus, CAN_FRAME *frame)
 					calc_crc8(frame);
 				break;
 				case 0x679: //Send missing 2018+ startup messages towards battery
+					charging_state	= 0;
 					PushCan(battery_can_bus, CAN_TX, &ZE1startupMessage603);
 					PushCan(battery_can_bus, CAN_TX, &ZE1startupMessage605);
 				break;

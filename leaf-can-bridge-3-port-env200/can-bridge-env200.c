@@ -12,10 +12,18 @@ DALA CAN Bridge rev. 2.5
 uint8_t	output_can_to_serial = 0;	//specifies if the received CAN messages should be dumped out to serial. NOTE: Increases CPU load drastically!
 
 //General variables
-volatile	uint16_t	main_battery_soc	= 0; 
+volatile	uint16_t	battery_soc	= 0; 
 volatile 	uint16_t	GIDS 				= 0; 
 volatile	uint8_t		can_busy			= 0;	//Tracks whether the can_handler() subroutine is running
 volatile	uint16_t	sec_timer			= 1;	//Counts down from 1000
+volatile	uint8_t		max_charge_80_requested	= 0;
+volatile	uint8_t		charging_state			= 0;
+
+#define CHARGING_QUICK_START	0x40
+#define CHARGING_QUICK			0xC0
+#define CHARGING_QUICK_END		0xE0
+#define CHARGING_SLOW			0x20
+#define CHARGING_IDLE			0x60
 
 //CAN message templates
 volatile	uint8_t		battery_can_bus			= 2; //keeps track on which CAN bus the battery talks
@@ -301,6 +309,11 @@ void can_handler(uint8_t can_bus){
 		
 		switch(frame.can_id){
 			case 0x1F2:
+			 	//Collect charging state
+			 	charging_state = frame.data[2];
+			 	//Check if VCM wants to only charge to 80%
+			 	max_charge_80_requested = ((frame.data[0] & 0x80) >> 7);
+							 
 				//Upon reading VCM originating 0x1F2 every 10ms, send the missing message to battery every 40ms
 				ticks10ms++;
 				if(ticks10ms > 3)
@@ -310,9 +323,21 @@ void can_handler(uint8_t can_bus){
 				}
 
 			break;
+			case 0x1DB:
+				if(max_charge_80_requested)
+				{
+					if((charging_state == CHARGING_SLOW) && (battery_soc > 80))
+					{
+						frame.data[1] = (frame.data[1] & 0xE0) | 2; //request charging stop
+						frame.data[3] = (frame.data[3] & 0xEF) | 0x10; //full charge completed
+					}
+				}
+
+				calc_crc8(&frame);
+			break;
 			case 0x55B:
-				main_battery_soc = (frame.data[0] << 2) | ((frame.data[1] & 0xC0) >> 6); //Capture SOC% needed for QC_rescaling
-				main_battery_soc /= 10; //Remove decimals, 0-100 instead of 0-100.0
+				battery_soc = (frame.data[0] << 2) | ((frame.data[1] & 0xC0) >> 6); //Capture SOC% needed for QC_rescaling
+				battery_soc /= 10; //Remove decimals, 0-100 instead of 0-100.0
 				
 				battery_can_bus = can_bus; //Check on what side of the CAN-bridge the battery is connected to
 				
@@ -334,12 +359,13 @@ void can_handler(uint8_t can_bus){
 			break;
 			case 0x59E:   // QC capacity message
 				//Calculate new LBC_QC_CapRemaining value
-				temp = ((230 * main_battery_soc)/100); // Crazy advanced math
+				temp = ((230 * battery_soc)/100); // Crazy advanced math
 				frame.data[3] = (frame.data[3] & 0xF0) | ((temp >> 5) & 0xF); // store the new LBC_QC_CapRemaining
 				frame.data[4] = ((temp & 0x1F) <<3) | (frame.data[4] & 0x07); // to the 59E message out to vehicle
 				calc_crc8(&frame);
 			break;
 			case 0x679: //Send missing 2018+ startup messages towards battery
+				charging_state = 0;
 				send_can(battery_can_bus, ZE1startupMessage603);
 				send_can(battery_can_bus, ZE1startupMessage605);
 			break;
